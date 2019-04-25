@@ -1,0 +1,326 @@
+Globals [
+  Faixa_Etaria_01
+  Faixa_Etaria_02
+  Faixa_Etaria_03
+  Faixa_Etaria_04
+  Votos_Candidato_A
+  Votos_Candidato_B
+  Try_Buy_A
+  Try_Buy_B
+  Total_Vitoria_A
+  Total_Vitoria_B
+  ]
+
+Eleitores-own [
+  Faixa_Etaria?
+  Saude
+  Educacao
+  Emprego
+  Red_Imposto
+  Vendeu_Voto?
+  ]
+
+Candidatos-own [
+  Saude?
+  Educacao?
+  Emprego?
+  Red_Imposto?
+  Vencedor?
+  ]
+
+to Setup
+
+  clear-all
+
+  set Try_Buy_A       0
+  set Try_Buy_B       0
+  set Faixa_Etaria_01 [ .35 .65 ]
+  set Faixa_Etaria_02 [ .20 .80 ]
+  set Faixa_Etaria_03 [ .50 .50 ]
+  set Faixa_Etaria_04 [ .65 .35 ]
+  set Total_Vitoria_A 0
+  set Total_Vitoria_B 0
+
+
+  create-Candidatos 1 [
+
+    setxy            random 50 random 50
+    set color        blue
+    set shape        "person"
+    set size         2
+    set Saude?       true
+    set Educacao?    true
+    set Emprego?     false
+    set Red_Imposto? false
+
+    ]
+
+    create-Candidatos 1 [
+
+    setxy            random 50 random 50
+    set color        red
+    set shape        "person"
+    set size         2
+    set Saude?       false
+    set Educacao?    false
+    set Emprego?     true
+    set Red_Imposto? true
+
+    ]
+
+  let ii 0
+  while [ ii < 50 ] [
+    let j 0
+    while [ j < 50 ] [
+      create-Casas 1 [
+        setxy ii j
+        set shape "house"
+        set size .5
+        set color white
+        ]
+      set j j + 1
+      ]
+    set ii ii + 1
+    ]
+
+  create-Eleitores Total_Eleitores [
+    set          Color   random-float 100
+    setxy        random  50 random 50
+    set          shape   "person"
+    set          size    1
+    let i        random-float 1
+    ifelse i < %_Faixa_Etaria_01 [
+
+      set Faixa_Etaria? Faixa_Etaria_01
+      set Saude         0.10
+      set Educacao      0.25
+      set Emprego       0.40
+      set Red_Imposto   0.25
+      set Vendeu_Voto?  false
+
+      ] [
+
+      ifelse i < (%_Faixa_Etaria_01 + %_Faixa_Etaria_02) [
+
+        set Faixa_Etaria? Faixa_Etaria_02
+        set Saude         0.10
+        set Educacao      0.10
+        set Emprego       0.40
+        set Red_Imposto   0.40
+        set Vendeu_Voto?  false
+
+        ] [
+
+        ifelse i < (%_Faixa_Etaria_01 + %_Faixa_Etaria_02 + %_Faixa_Etaria_03) [
+
+          set Faixa_Etaria? Faixa_Etaria_03
+          set Saude         0.25
+          set Educacao      0.25
+          set Emprego       0.25
+          set Red_Imposto   0.25
+          set Vendeu_Voto?  false
+
+          ] [
+
+        set Faixa_Etaria? Faixa_Etaria_04
+        set Saude         0.40
+        set Educacao      0.25
+        set Emprego       0.25
+        set Red_Imposto   0.10
+        set Vendeu_Voto?  false
+
+          ]; end ifelse i < .83
+
+        ]; end ifelse i < .37
+
+      ];end ifelelse < 0.15
+
+    ];end create-eleitores
+
+
+
+  reset-ticks
+end 
+
+to Go!
+
+  if not Eleição_Justa? [
+
+    ifelse So_Perd_Compra? [
+
+      ask Candidato 0 [
+        let V 0
+        while [ V < Nr_Casas ] [
+        setxy random 50 random 50
+        if Votos_Candidato_A != Votos_Candidato_B [
+          ifelse Votos_Candidato_A > Votos_Candidato_B [ set Vencedor? true ] [
+            set Vencedor? false
+            ask Eleitores-here [
+              if not Vendeu_Voto? [
+                let F min          list          1 ((first Faixa_Etaria?) + (ValorPropina / 100))
+                let L max          list          0 ((last  Faixa_Etaria?) - (ValorPropina / 100))
+                set Faixa_Etaria?  replace-item  0 Faixa_Etaria? F
+                set Faixa_Etaria?  replace-item  1 Faixa_Etaria? L
+                set Vendeu_Voto?   true
+                set Try_Buy_A      Try_Buy_A + 1
+              ];end if vendeu voto
+              ];end ask eleitores here
+
+            ]
+        ]
+        set V V + 1
+        ];end While
+      ];end ask who 1
+
+      ask Candidato 1 [
+        let V 0
+        while [ V < Nr_Casas ] [
+        setxy random 50 random 50
+        if Votos_Candidato_A != Votos_Candidato_B [
+          ifelse Votos_Candidato_A > Votos_Candidato_B [
+            set Vencedor? false
+
+            ask Eleitores-here [
+              if not Vendeu_Voto? [
+                let F max         list          0 ((first Faixa_Etaria?) - (ValorPropina / 100))
+                let L min         list          1 ((last  Faixa_Etaria?) + (ValorPropina / 100))
+                set Faixa_Etaria? replace-item  0 Faixa_Etaria? F
+                set Faixa_Etaria? replace-item  1 Faixa_Etaria? L
+                set Vendeu_Voto?  true
+                set Try_Buy_B     Try_Buy_B + 1
+              ];end in not vendeu voto
+            ];end ask eleitores here
+
+            ] [ set Vencedor? true ]
+        ]
+        set V V + 1
+        ];end while
+      ];end ask who 2
+
+
+  ];end olny loser buying votes
+  [ ;now both Candidates try to buying votes
+
+    ask Candidato 0 [
+      let V 0
+      while [ V < Nr_Casas ] [
+      setxy random 50 random 50
+
+          ask Eleitores-here [
+            if not Vendeu_Voto? [
+              let F min         list          1 ((first Faixa_Etaria?) + (ValorPropina / 100))
+              let L max         list          0 ((last  Faixa_Etaria?) - (ValorPropina / 100))
+              set Faixa_Etaria? replace-item  0 Faixa_Etaria? F
+              set Faixa_Etaria? replace-item  1 Faixa_Etaria? L
+              set Vendeu_Voto?  true
+              set Try_Buy_A     Try_Buy_A + 1
+          ]
+      ];end ask eleitores here
+          set V V + 1
+      ];end While
+    ];end ask Candidato 0
+
+    ask Candidato 1 [
+      let V 0
+      while [ V < Nr_Casas ] [
+      setxy random 50 random 50
+
+          ask Eleitores-here [
+            if not Vendeu_Voto? [
+              let F max          list          0 ((first Faixa_Etaria?) - (ValorPropina / 100))
+              let L min          list          1 ((last  Faixa_Etaria?) + (ValorPropina / 100))
+              set Faixa_Etaria?  replace-item  0 Faixa_Etaria? F
+              set Faixa_Etaria?  replace-item  1 Faixa_Etaria? L
+              set Vendeu_Voto?   true
+              set Try_Buy_B      Try_Buy_B + 1
+          ]
+      ];end ask eleitores here
+          set V V + 1
+      ];end while
+    ];end ask Candidato 1
+  ];end ifelse Somente candidato perdedor
+  ];end if not eleicao justa
+
+
+;******************************************************  computando resultado das eleições  **************************************************************************************
+
+if (ticks mod Proxima_eleicao = 0) [
+
+  let Votos_Candidato_A? 0
+  let Votos_Candidato_B? 0
+  set Try_Buy_A          0
+  set Try_Buy_B          0
+  set Total_Vitoria_A    0
+  set Total_Vitoria_B    0
+
+  ask Eleitores [
+
+    set Vendeu_Voto?  false
+    let i random-float 1
+
+    ifelse i < first Faixa_Etaria? [ set Votos_Candidato_A?  Votos_Candidato_A? + 1 ] [ set Votos_Candidato_B? Votos_Candidato_B? + 1 ]; end ifelse
+
+    if Eleitores_Com_Memoria? [
+
+      ifelse i < %_Faixa_Etaria_01 [
+
+        set Faixa_Etaria? Faixa_Etaria_01
+        set Saude         0.10
+        set Educacao      0.25
+        set Emprego       0.40
+        set Red_Imposto   0.25
+        set Vendeu_Voto?  false
+
+      ] [
+
+      ifelse i < (%_Faixa_Etaria_01 + %_Faixa_Etaria_02) [
+
+        set Faixa_Etaria? Faixa_Etaria_02
+        set Saude         0.10
+        set Educacao      0.10
+        set Emprego       0.40
+        set Red_Imposto   0.40
+        set Vendeu_Voto?  false
+
+      ] [
+
+      ifelse i < (%_Faixa_Etaria_01 + %_Faixa_Etaria_02 + %_Faixa_Etaria_03) [
+
+        set Faixa_Etaria? Faixa_Etaria_03
+        set Saude         0.25
+        set Educacao      0.25
+        set Emprego       0.25
+        set Red_Imposto   0.25
+        set Vendeu_Voto?  false
+
+      ] [
+
+      set Faixa_Etaria? Faixa_Etaria_04
+      set Saude         0.40
+      set Educacao      0.25
+      set Emprego       0.25
+      set Red_Imposto   0.10
+      set Vendeu_Voto?  false
+
+      ]; end ifelse i < .83
+
+      ]; end ifelse i < .37
+
+      ];end ifelelse < 0.15
+
+      ]; end Eleitores_Com_Memoria
+
+  ];end ask eleitores
+
+  set Votos_Candidato_A Votos_Candidato_A?
+  set Votos_Candidato_B Votos_Candidato_B?
+
+  ifelse Votos_Candidato_A > Votos_Candidato_B [ output-print "Eleito Candidato A" set Total_Vitoria_A Total_Vitoria_A + 1 ]
+  [ output-print "Eleito Candidato B" set Total_Vitoria_B Total_Vitoria_B + 1 ]
+
+];end if ticks mod 100
+
+
+
+  tick
+end 
